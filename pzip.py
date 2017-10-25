@@ -11,6 +11,7 @@ class PZip:
         self.files = Array(c_char_p, len(files))
         self.pointer = Value("i", 0)
         self.file_init(files)
+        self.sem = Semaphore(1)
         self.processes = processes
         self.mode = mode
         self.t = t
@@ -24,11 +25,10 @@ class PZip:
 
     def zip(self):
         while self.pointer.value < len(self.files):
-            sem = Semaphore(1)
-            sem.acquire()
+            self.sem.acquire()
             iterator = self.pointer.value
             self.pointer.value += 1
-            sem.release()
+            self.sem.release()
             if iterator < len(self.files):
                 File = self.files[iterator]
                 with ZipFile(File + '.zip', 'w') as zipfile:
@@ -36,11 +36,10 @@ class PZip:
 
     def unzip(self):
         while self.pointer.value < len(self.files):
-            sem = Semaphore(1)
-            sem.acquire()
+            self.sem.acquire()
             iterator = self.pointer.value
             self.pointer.value += 1
-            sem.release()
+            self.sem.release()
             if iterator < len(self.files):
                 File = self.files[iterator]
                 with ZipFile(File, 'r') as zipfile:
