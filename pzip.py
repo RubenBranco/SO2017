@@ -14,16 +14,15 @@ class PZip:
         self.pointer = Value("i", 0)
         self.file_init(files)
         self.sem = Semaphore(1)
-        self.mode = mode
         self.t = t
         self.queue = Queue()
         for i in range(processes[0]):
-            newP = Process(target=(self.zip if self.mode == 'c' else self.unzip))
-            newP.start(if os.path.isfile(File):
+            newP = Process(target=(self.zip if mode == 'c' else self.unzip))
+            newP.start()
+
     def file_init(self, files):
         for i in range(len(files)):
-            self.files[i] =
-    else:
+            self.files[i] = files[i]
 
     def zip(self):
         error_flag = False
@@ -39,11 +38,9 @@ class PZip:
                         with ZipFile(File + '.zip', 'w') as zipfile:
                             zipfile.write(File)
                     else:
-                        print 'ERRO'
                         self.queue.put('1')
                         error_flag = True
             else:
-                print os.getpid(), 'parou'
                 error_flag = True
 
     def unzip(self):
