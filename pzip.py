@@ -2,9 +2,8 @@
 
 import argparse
 from zipfile import ZipFile
-from multiprocessing import Process, Value, Array
+from multiprocessing import Process, Value, Array, Semaphore, Queue
 from ctypes import c_char_p
-from multiprocessing import Semaphore, Queue
 import os
 
 
@@ -15,7 +14,7 @@ class PZip:
         self.file_init(files)
         self.sem = Semaphore(1)
         self.t = t
-        self.queue = Queue()
+        self.errorChecker = Value('i', 0)
         for i in range(processes[0]):
             newP = Process(target=(self.zip if mode == 'c' else self.unzip))
             newP.start()
@@ -25,42 +24,32 @@ class PZip:
             self.files[i] = files[i]
 
     def zip(self):
-        error_flag = False
-        while self.pointer.value < len(self.files) and not error_flag:
-            if (self.t and self.queue.empty()) or not self.t:
-                self.sem.acquire()
-                iterator = self.pointer.value
-                self.pointer.value += 1
-                self.sem.release()
-                if iterator < len(self.files):
-                    File = self.files[iterator]
-                    if os.path.isfile(File):
-                        with ZipFile(File + '.zip', 'w') as zipfile:
-                            zipfile.write(File)
-                    else:
-                        self.queue.put('1')
-                        error_flag = True
-            else:
-                error_flag = True
+        while self.pointer.value < len(self.files) and ((self.errorChecker.value == 0 and self.t) or not self.t):
+            self.sem.acquire()
+            iterator = self.pointer.value
+            self.pointer.value += 1
+            self.sem.release()
+            if iterator < len(self.files):
+                File = self.files[iterator]
+                if os.path.isfile(File):
+                    with ZipFile(File + '.zip', 'w') as zipfile:
+                        zipfile.write(File)
+                else:
+                    self.errorChecker.value = 1
 
     def unzip(self):
-        error_flag = False
-        while self.pointer.value < len(self.files) and not error_flag:
-            if (self.t and self.queue.empty()) or not self.t:
-                self.sem.acquire()
-                iterator = self.pointer.value
-                self.pointer.value += 1
-                self.sem.release()
-                if iterator < len(self.files):
-                    File = self.files[iterator]
-                    if os.path.isfile(File):
-                        with ZipFile(File, 'r') as zipfile:
-                            zipfile.extractall('.')
-                    else:
-                        self.queue.put('1')
-                        error_flag = True
-            else:
-                error_flag = True
+        while self.pointer.value < len(self.files) and ((self.errorChecker.value == 0 and self.t) or not self.t):
+            self.sem.acquire()
+            iterator = self.pointer.value
+            self.pointer.value += 1
+            self.sem.release()
+            if iterator < len(self.files):
+                File = self.files[iterator]
+                if os.path.isfile(File):
+                    with ZipFile(File, 'r') as zipfile:
+                        zipfile.extractall('.')
+                else:
+                    self.errorChecker.value = 1
 
 
 if __name__ == '__main__':
