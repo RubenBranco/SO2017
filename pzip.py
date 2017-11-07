@@ -2,7 +2,7 @@
 
 import argparse
 from zipfile import ZipFile
-from multiprocessing import Process, Value, Array, Semaphore, Queue
+from multiprocessing import Process, Value, Array, Semaphore
 from ctypes import c_char_p
 import os
 
