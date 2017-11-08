@@ -21,6 +21,8 @@ class PZip:
         self.file_init(files)
         self.sem = Semaphore(1)
         self.t = t
+        self.totalFiles = Value('i', 0)
+        self.totalFilesSem = Semaphore(1)
         self.errorChecker = Value('i', 0)
         for i in range(processes[0]):
             newP = Process(target=(self.zip if mode == 'c' else self.unzip))
@@ -53,6 +55,9 @@ class PZip:
                 if os.path.isfile(File):  # Ver se o ficheiro existe
                     with ZipFile(File + '.zip', 'w') as zipfile:
                         zipfile.write(File)  # Zip
+                    self.totalFilesSem.acquire()
+                    self.totalFiles.value += 1
+                    self.totalFilesSem.release()
                 else:
                     self.errorChecker.value = 1  # Ha erro e a flag atualiza
 
@@ -74,6 +79,9 @@ class PZip:
                 if os.path.isfile(File):  # Ver se o ficheiro existe
                     with ZipFile(File, 'r') as zipfile:
                         zipfile.extractall('.')  # Unzip
+                    self.totalFilesSem.acquire()
+                    self.totalFiles.value += 1
+                    self.totalFilesSem.release()
                 else:
                     self.errorChecker.value = 1  # Ha erro e a flag atualiza
 

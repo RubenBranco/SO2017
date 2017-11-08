@@ -23,6 +23,9 @@ class PZip:
         pointer = 0
         self.sem = Semaphore(1)
         self.t = t
+        self.totalFilesSem = Semaphore(1)
+        global totalFiles
+        totalFiles = 0
         global error_flag
         error_flag = False
         for i in range((threads[0] if threads[0] <= len(files) else len(files))):
@@ -38,6 +41,7 @@ class PZip:
         global pointer
         global files
         global error_flag
+        global totalFiles
         while pointer < len(files) and ((self.t and not error_flag) or not self.t):
                 # Se o modo e' t e a error_flag nao for false entao pode avancar
                 # Se o modo nao for t pode avancar sem restricoes
@@ -50,6 +54,9 @@ class PZip:
                     if os.path.isfile(File):  # Ver se o ficheiro existe
                         with ZipFile(File + '.zip', 'w') as zipfile:
                             zipfile.write(File)  # Zip
+                        self.totalFilesSem.acquire()
+                        totalFiles += 1
+                        self.totalFilesSem.release()
                     else:
                         print "O ficheiro", File, "não existe."  # Se nao existir, avisa o utilizador
                         error_flag = True  # Atualiza a sua propria flag
@@ -63,6 +70,7 @@ class PZip:
         global pointer
         global files
         global error_flag
+        global totalFiles
         while pointer < len(files) and ((self.t and not error_flag) or not self.t):
                 # Se o modo nao for t pode avancar sem restricoes
                 # Se o modo e' t e a error_flag nao for false entao pode avancar
@@ -75,6 +83,9 @@ class PZip:
                     if os.path.isfile(File):  # Ver se o ficheiro existe
                         with ZipFile(File, 'r') as zipfile:
                             zipfile.extractall('.')  # Unzip
+                        self.totalFilesSem.acquire()
+                        totalFiles += 1
+                        self.totalFilesSem.release()
                     else:
                         print "O ficheiro", File, "não existe."  # Se nao exister, avisa o utilizador
                         error_flag = True  # Atualiza a sua propria flag
