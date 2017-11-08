@@ -16,10 +16,8 @@ class PZip:
         e' um int.
         Ensures: Zip ou unzip de ficheiros contidos em 'files'
         """
-        self.files = Array(c_char_p, len(files))
+        self.files = files
         self.pointer = Value("i", 0)
-        self.file_
-        (files)
         self.sem = Semaphore(1)
         self.t = t
         self.totalFiles = Value('i', 0)
@@ -28,15 +26,6 @@ class PZip:
         for i in range(processes[0]):
             newP = Process(target=(self.zip if mode == 'c' else self.unzip))
             newP.start()
-
-    def file_init(self, files):
-        """
-        Inicializa o array de memoria partilhada com os ficheiros passados no construtor.
-        Requires: Files e' uma lista de strings.
-        Ensures: A populacao do array de memoria partilhada self.files com as strings contidas em 'files'.
-        """
-        for i in range(len(files)):
-            self.files[i] = files[i]
 
     def zip(self):
         """
@@ -61,9 +50,10 @@ class PZip:
                     self.totalFilesSem.release()
                 else:
                     self.errorChecker.value = 1  # Ha erro e a flag atualiza
+		        #print os.getpid(), self.errorChecker.value
 
     def unzip(self):
-         """
+        """
         Faz unzip de um ficheiro zip.
         Requires: objeto self.
         Ensures: O unzip de um ficheiro zip.
@@ -85,10 +75,10 @@ class PZip:
                     self.totalFilesSem.release()
                 else:
                     self.errorChecker.value = 1  # Ha erro e a flag atualiza
-
+		        #print os.getpid(), self.errorChecker.value
 
 if __name__ == '__main__':
-     """
+    """
     Argparse e' usado para fazer parsing dos argumentos da linha de comando.
     """
     description = 'Comprime e descomprime conjuntos de ficheiros paralelamente'
