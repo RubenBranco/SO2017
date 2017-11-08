@@ -92,7 +92,7 @@ if __name__ == '__main__':
     parser.add_argument("-p", metavar="configs", dest="parallel", help="Numero de processos permitidos", type=int,
                         nargs=1, default=[1])
     parser.add_argument("-t", dest="t", help="Obriga a suspensao de execucao caso um ficheiro seja"
-                                             "nao existente", action="store_true")
+                                             "nao existente", action="store_true")  # True or false para modo t
     parser.add_argument("files", type=str, metavar="files", nargs="+", help="Ficheiros para comprimir/descomprimir")
     args = parser.parse_args()
     zipper = PZip(args.files, args.mode, args.t, args.parallel)
