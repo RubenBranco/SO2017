@@ -106,4 +106,6 @@ if __name__ == '__main__':
                                              "nao existente", action="store_true")  # True or false para modo t
     parser.add_argument("files", type=str, metavar="files", nargs="+", help="Ficheiros para comprimir/descomprimir")
     args = parser.parse_args()
+    if args.parallel <= 0:
+        parser.error("Tem de criar 1 ou mais processos")
     zipper = PZip(args.files, args.mode, args.t, args.parallel)

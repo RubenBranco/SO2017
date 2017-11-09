@@ -24,9 +24,12 @@ class PZip:
         self.totalFiles = Value('i', 0)
         self.totalFilesSem = Semaphore(1)
         self.errorChecker = Value('i', 0)
-        for i in range(processes[0]):
-            newP = Process(target=(self.zip if mode == 'c' else self.unzip))
-            newP.start()
+        processos = [Process(target=(self.zip if mode == 'c' else self.unzip)) for i in range((threads[0] if threads[0] <= len(files) else len(files)))]
+        for i in range(len(processos)):
+            processos[i].start()
+        for i in range(len(processos)):
+            processos[i].join()
+        print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.totalFiles), "ficheiros."
 
     def file_init(self, files):
         """
@@ -101,4 +104,6 @@ if __name__ == '__main__':
                                                                 "nao existente", action="store_true")  # True or false para modo t
     parser.add_argument("files", type=str, metavar="files", nargs="+", help="Ficheiros para comprimir/descomprimir")
     args = parser.parse_args()
+    if args.parallel <= 0:
+        parser.error("Tem de criar 1 ou mais processos")
     zipper = PZip(args.files, args.mode, args.t, args.parallel)
