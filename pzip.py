@@ -3,9 +3,9 @@
 
 import argparse
 from zipfile import ZipFile
-from multiprocessing import Process, Value, Array, Semaphore
-from ctypes import c_char_p
+from multiprocessing import Process, Value, Semaphore
 import os
+import sys
 
 
 class PZip:
@@ -16,29 +16,19 @@ class PZip:
         e' um int.
         Ensures: Zip ou unzip de ficheiros contidos em 'files'
         """
-        self.files = Array(c_char_p, len(files))
+        self.files = files
         self.pointer = Value("i", 0)
-        self.file_init(files)
         self.sem = Semaphore(1)
         self.t = t
         self.totalFiles = Value('i', 0)
         self.totalFilesSem = Semaphore(1)
         self.errorChecker = Value('i', 0)
-        processos = [Process(target=(self.zip if mode == 'c' else self.unzip)) for i in range((threads[0] if threads[0] <= len(files) else len(files)))]
+        processos = [Process(target=(self.zip if mode == 'c' else self.unzip)) for i in range((processes[0] if processes[0] <= len(files) else len(files)))]
         for i in range(len(processos)):
             processos[i].start()
         for i in range(len(processos)):
             processos[i].join()
-        print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.totalFiles), "ficheiros."
-
-    def file_init(self, files):
-        """
-        Inicializa o array de memoria partilhada com os ficheiros passados no construtor.
-        Requires: Files e' uma lista de strings.
-        Ensures: A populacao do array de memoria partilhada self.files com as strings contidas em 'files'.
-        """
-        for i in range(len(files)):
-            self.files[i] = files[i]
+        print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.totalFiles.value), "ficheiros."
 
     def zip(self):
         """
@@ -62,10 +52,11 @@ class PZip:
                     self.totalFiles.value += 1
                     self.totalFilesSem.release()
                 else:
+                    print "O ficheiro", File, "não existe."  # Se nao exister, avisa o utilizador
                     self.errorChecker.value = 1  # Ha erro e a flag atualiza
 
     def unzip(self):
-         """
+        """
         Faz unzip de um ficheiro zip.
         Requires: objeto self.
         Ensures: O unzip de um ficheiro zip.
@@ -86,24 +77,31 @@ class PZip:
                     self.totalFiles.value += 1
                     self.totalFilesSem.release()
                 else:
+                    print "O ficheiro", File, "não existe."  # Se nao exister, avisa o utilizador
                     self.errorChecker.value = 1  # Ha erro e a flag atualiza
 
 
 if __name__ == '__main__':
-     """
+    """
     Argparse e' usado para fazer parsing dos argumentos da linha de comando.
     """
     description = 'Comprime e descomprime conjuntos de ficheiros paralelamente'
     parser = argparse.ArgumentParser(description=description)
-    group = parser.add_mutually_exclusive_group()  # Grupo exclusivo para -c ou -d (zip ou unzip)
+    group = parser.add_mutually_exclusive_group(required=True)  # Grupo exclusivo para -c ou -d (zip ou unzip)
     group.add_argument("-c", dest="mode", help="Comprimir ficheiros", action="store_const", const="c")
     group.add_argument("-d", dest="mode", help="Descomprimir ficheiros", action="store_const", const="d")
-    parser.add_argument("-p", metavar="configs", dest="parallel", help="Numero de processos permitidos", type=int,
+    parser.add_argument("-p", metavar="processes", dest="parallel", help="Numero de processos permitidos", type=int,
                         nargs=1, default=[1])
     parser.add_argument("-t", dest="t", help="Obriga a suspensao de execucao caso um ficheiro seja"
                                                                 "nao existente", action="store_true")  # True or false para modo t
-    parser.add_argument("files", type=str, metavar="files", nargs="+", help="Ficheiros para comprimir/descomprimir")
+    parser.add_argument("files", type=str, metavar="files", nargs="*", help="Ficheiros para comprimir/descomprimir")
     args = parser.parse_args()
-    if args.parallel <= 0:
+    if not args.files and not sys.stdin.isatty():
+        # stdin.isatty retorna False se houver algo no stdin, ou seja, pzip -c|-d < ficheiro.txt
+        args.files = filter(lambda x: x != '', sys.stdin.read().split("\n"))
+    elif not args.files and sys.stdin.isatty():
+        # Se nao tiver algo no stdin e nao for especificado ficheiros, perguntar ao utilizador
+        args.files = filter(lambda x: x != '', sys.stdin.read().split("\n"))
+    if args.parallel[0] <= 0:
         parser.error("Tem de criar 1 ou mais processos")
-    zipper = PZip(args.files, args.mode, args.t, args.parallel)
+    PZip(args.files, args.mode, args.t, args.parallel)
