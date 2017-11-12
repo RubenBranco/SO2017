@@ -28,7 +28,7 @@ class PZip:
             processos[i].start()
         for i in range(len(processos)):
             processos[i].join()
-        #print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.totalFiles.value), "ficheiros."
+        print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.totalFiles.value), "ficheiros."
 
     def zip(self):
         """

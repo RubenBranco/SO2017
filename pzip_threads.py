@@ -32,7 +32,7 @@ class PZip:
             thread.start()
         for thread in threadList:
             thread.join()
-        #print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(totalFiles), "ficheiros."
+        print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(totalFiles), "ficheiros."
 
     def zip(self):
         """
