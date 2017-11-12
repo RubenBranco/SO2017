@@ -17,8 +17,7 @@ class PZip:
         e' um int.
         Ensures: Zip ou unzip de ficheiros contidos em 'files'
         """
-        global files
-        files = Files
+        self.files = Files
         global pointer
         pointer = 0
         self.sem = Semaphore(1)
@@ -28,12 +27,12 @@ class PZip:
         totalFiles = 0
         global error_flag
         error_flag = False
-        threadList = [Thread(target=(self.zip if mode == 'c' else self.unzip)) for i in range((threads[0] if threads[0] <= len(files) else len(files)))]
+        threadList = [Thread(target=(self.zip if mode == 'c' else self.unzip)) for i in range((threads[0] if threads[0] <= len(Files) else len(Files)))]
         for thread in threadList:
             thread.start()
         for thread in threadList:
             thread.join()
-        print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(totalFiles), "ficheiros."
+        #print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(totalFiles), "ficheiros."
 
     def zip(self):
         """
@@ -42,27 +41,26 @@ class PZip:
         Ensures: Zip de ficheiros.
         """
         global pointer
-        global files
         global error_flag
         global totalFiles
-        while pointer < len(files) and ((self.t and not error_flag) or not self.t):
-                # Se o modo e' t e a error_flag nao for false entao pode avancar
-                # Se o modo nao for t pode avancar sem restricoes
-                self.sem.acquire()
-                iterator = pointer
-                pointer += 1
-                self.sem.release()
-                if iterator < len(files):  # Iterator e' o ficheiro que deve ser utilizado pela thread
-                    File = files[iterator]
-                    if os.path.isfile(File):  # Ver se o ficheiro existe
-                        with ZipFile(File + '.zip', 'w') as zipfile:
-                            zipfile.write(File)  # Zip
-                        self.totalFilesSem.acquire()
-                        totalFiles += 1
-                        self.totalFilesSem.release()
-                    else:
-                        print "O ficheiro", File, "não existe."  # Se nao existir, avisa o utilizador
-                        error_flag = True  # Atualiza a sua propria flag
+        while pointer < len(self.files) and ((self.t and not error_flag) or not self.t):
+            # Se o modo e' t e a error_flag nao for false entao pode avancar
+            # Se o modo nao for t pode avancar sem restricoes
+            self.sem.acquire()
+            iterator = pointer
+            pointer += 1
+            self.sem.release()
+            if iterator < len(self.files):  # Iterator e' o ficheiro que deve ser utilizado pela thread
+                File = self.files[iterator]
+                if os.path.isfile(File):  # Ver se o ficheiro existe
+                    with ZipFile(File + '.zip', 'w') as zipfile:
+                        zipfile.write(File)  # Zip
+                    self.totalFilesSem.acquire()
+                    totalFiles += 1
+                    self.totalFilesSem.release()
+                else:
+                    print "O ficheiro", File, "não existe."  # Se nao existir, avisa o utilizador
+                    error_flag = True  # Atualiza a sua propria flag
 
     def unzip(self):
         """
@@ -71,27 +69,26 @@ class PZip:
         Ensures: O unzip de um ficheiro zip.
         """
         global pointer
-        global files
         global error_flag
         global totalFiles
-        while pointer < len(files) and ((self.t and not error_flag) or not self.t):
-                # Se o modo nao for t pode avancar sem restricoes
-                # Se o modo e' t e a error_flag nao for false entao pode avancar
-                self.sem.acquire()
-                iterator = pointer
-                pointer += 1
-                self.sem.release()
-                if iterator < len(files):  # Iterator e' o ficheiro que deve ser utilizado pela thread
-                    File = files[iterator]
-                    if os.path.isfile(File):  # Ver se o ficheiro existe
-                        with ZipFile(File, 'r') as zipfile:
-                            zipfile.extractall('.')  # Unzip
-                        self.totalFilesSem.acquire()
-                        totalFiles += 1
-                        self.totalFilesSem.release()
-                    else:
-                        print "O ficheiro", File, "não existe."  # Se nao exister, avisa o utilizador
-                        error_flag = True  # Atualiza a sua propria flag
+        while pointer < len(self.files) and ((self.t and not error_flag) or not self.t):
+            # Se o modo nao for t pode avancar sem restricoes
+            # Se o modo e' t e a error_flag nao for false entao pode avancar
+            self.sem.acquire()
+            iterator = pointer
+            pointer += 1
+            self.sem.release()
+            if iterator < len(self.files):  # Iterator e' o ficheiro que deve ser utilizado pela thread
+                File = self.files[iterator]
+                if os.path.isfile(File):  # Ver se o ficheiro existe
+                    with ZipFile(File, 'r') as zipfile:
+                        zipfile.extractall('.')  # Unzip
+                    self.totalFilesSem.acquire()
+                    totalFiles += 1
+                    self.totalFilesSem.release()
+                else:
+                    print "O ficheiro", File, "não existe."  # Se nao exister, avisa o utilizador
+                    error_flag = True  # Atualiza a sua propria flag
 
 
 if __name__ == '__main__':
