@@ -3,7 +3,8 @@
 
 import argparse
 from zipfile import ZipFile
-from multiprocessing import Process, Value, Semaphore
+from multiprocessing import Process, Value, Semaphore, Array
+from ctypes import c_char_p
 import signal
 import time
 import os
@@ -23,6 +24,15 @@ class PZip:
         self.sem = Semaphore(1)
         self.t = t
         self.f = f
+        self.names = None
+        self.sizes = None
+        self.times = None
+        self.pid = None
+        if f is not None:
+            self.names = Array(c_char_p, len(files))
+            self.sizes = Array("i", len(files))
+            self.times = Array("d", len(files))
+            self.pid = Array("i", len(files))
         signal.signal(signal.SIGINT, self.sigint_handler)
         if a is not None:
             signal.signal(signal.SIGALRM, self.sigalrm_handler)
@@ -39,6 +49,8 @@ class PZip:
             processos[i].start()
         for i in range(len(processos)):
             processos[i].join()
+        if f is not None:
+            self.log_writer()
         print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.totalFiles.value), "ficheiros."
         print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.volume.value / 1024), \
             "Kb de ficheiros"
@@ -53,6 +65,7 @@ class PZip:
         while self.pointer.value < len(self.files) and ((self.errorChecker.value == 0 and self.t) or not self.t):
             # Se o modo for t so pode avançar se errorChecker for 0 (nao ha erro) e ainda houver ficheiros
             # Se o modo nao for t entao pode avancar sem restricoes enquanto houver ficheiros
+            time1 = time.time()
             self.sem.acquire()  # Mutex para garantir que um ficheiro so e' zipado por um processo
             iterator = self.pointer.value
             self.pointer.value += 1
@@ -64,7 +77,13 @@ class PZip:
                         zipfile.write(File)  # Zip
                     self.totalFilesSem.acquire()
                     self.totalFiles.value += 1
-                    self.volume.value += os.path.getsize(File)
+                    file_size = os.path.getsize(File + '.zip')
+                    if self.f is not None:
+                        self.names[iterator] = File
+                        self.times[iterator] = time.time() - time1
+                        self.sizes[iterator] = file_size
+                        self.pid[iterator] = os.getpid()
+                    self.volume.value += file_size
                     self.totalFilesSem.release()
                 else:
                     print "O ficheiro", File, "não existe."  # Se nao exister, avisa o utilizador
@@ -79,6 +98,7 @@ class PZip:
         while self.pointer.value < len(self.files) and ((self.errorChecker.value == 0 and self.t) or not self.t):
             # Se o modo for t so pode avançar se errorChecker for 0 (nao ha erro) e ainda houver ficheiros
             # Se o modo nao for t entao pode avancar sem restricoes enquanto houver ficheiros
+            time1 = time.time()
             self.sem.acquire()  # Mutex para garantir que um ficheiro so e' unzipado por um processo
             iterator = self.pointer.value
             self.pointer.value += 1
@@ -90,7 +110,12 @@ class PZip:
                         zipfile.extractall('.')  # Unzip
                     self.totalFilesSem.acquire()
                     self.totalFiles.value += 1
-                    self.volume.value += os.path.getsize(File)
+                    file_size = os.path.getsize(File.strip(".zip"))
+                    if self.f is not None:
+                        self.names[iterator] = File
+                        self.times[iterator] = time.time() - time1
+                        self.sizes[iterator] = file_size
+                    self.volume.value += file_size
                     self.totalFilesSem.release()
                 else:
                     print "O ficheiro", File, "não existe."  # Se nao exister, avisa o utilizador
@@ -106,6 +131,13 @@ class PZip:
         print "Foram", ("comprimidos" if self.mode == 'c' else "descomprimidos"), \
             str(self.volume.value / 1024), "Kb de ficheiros"
         print "Tempo de execucao:", time.time() - timer
+
+    def log_writer(self):
+        status = {}
+        for i in range(len(self.files)):
+            if self.pid[i] not in status:
+                status[self.pid[i]] = []
+            status[self.pid[i]].append([self.names[i], self.sizes[i], self.times[i]])
 
 
 if __name__ == '__main__':
