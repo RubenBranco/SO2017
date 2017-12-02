@@ -9,6 +9,8 @@ import signal
 import time
 import os
 import sys
+import datetime
+import struct
 
 
 class PZip:
@@ -24,6 +26,7 @@ class PZip:
         self.sem = Semaphore(1)
         self.t = t
         self.f = f
+        self.date = datetime.datetime.now()
         self.names = None
         self.sizes = None
         self.times = None
@@ -49,12 +52,13 @@ class PZip:
             processos[i].start()
         for i in range(len(processos)):
             processos[i].join()
+        self.end_timer = time.time() - timer
         if f is not None:
             self.log_writer()
         print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.totalFiles.value), "ficheiros."
         print "Foram", ("comprimidos" if mode == 'c' else "descomprimidos"), str(self.volume.value / 1024), \
             "Kb de ficheiros"
-        print "Tempo de execucao:", time.time() - timer
+        print "Tempo de execucao:", self.end_timer
 
     def zip(self):
         """
@@ -133,11 +137,19 @@ class PZip:
         print "Tempo de execucao:", time.time() - timer
 
     def log_writer(self):
-        status = {}
+        status = []
         for i in range(len(self.files)):
-            if self.pid[i] not in status:
-                status[self.pid[i]] = []
-            status[self.pid[i]].append([self.names[i], self.sizes[i], self.times[i]])
+            status.append([self.pid[i], self.names[i], self.sizes[i], self.times[i]])
+        with open(self.f, "wb") as fw:
+            for num in [self.date.day, self.date.month, self.date.year, self.date.hour,
+                                 self.date.minute, self.date.second, self.date.microsecond]:
+                fw.write(struct.pack("i", num))
+            fw.write(struct.pack("d", self.end_timer))
+            for stat in status:
+                fw.write(struct.pack("i", stat[0]))
+                fw.write(struct.pack("B%ds" % len(stat[1]), len(stat[1]), stat[1]))
+                fw.write(struct.pack("i", stat[2]))
+                fw.write(struct.pack("d", stat[3]))
 
 
 if __name__ == '__main__':
