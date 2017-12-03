@@ -4,11 +4,15 @@
 import argparse
 import sys
 import struct
-import time
 import datetime
 
 
 def read_log(file):
+    """
+    Lê um ficheiro file, binario, que contem os estados de uma execucao do programa
+    Requires: file e' uma string
+    Ensures: A impressao para stdout do estado de execucao do programa contido em file
+    """
     date = 'Início da execução da compressão/descompressão: '
     duration = 'Duração da execução: '
     pointer = 0
@@ -18,37 +22,39 @@ def read_log(file):
     size_counter = 0
     with open(file, "rb") as fr:
         for i in range(3):
+            # A data tem dia / mes / ano, portanto e necessario ler 3 vezes e concatenar
             date += str(struct.unpack("i", fr.read(4))[0]) + ('/' if i < 2 else '')
         date += ', '
         for i in range(4):
+            # Tempo tem hh:mm:ss:ms portanto e' necessario ler 4 vezes e concatenar
             date += str(struct.unpack("i", fr.read(4))[0]) + (':' if i < 3 else '')
         duration += datetime.datetime.utcfromtimestamp(
-            struct.unpack("d", fr.read(8))[0]).strftime("%H:%M:%S:%f")
-        while fr.read(1):
-            fr.seek(-1, 1)
-            if pointer == 0:
+            struct.unpack("d", fr.read(8))[0]).strftime("%H:%M:%S:%f")  # Indicar a estrutura da string do timestamp,
+        while fr.read(1):                                               # Que e' a duracao de programa
+            fr.seek(-1, 1)  # Ver se existe ainda algo no ficheiro e voltar atras
+            if pointer == 0:  # Pointer 0 = pid
                 pid = struct.unpack("i", fr.read(4))[0]
                 if pid not in stats:
                     stats[pid] = []
                     pointer += 1
-            elif pointer == 1:
-                size = struct.unpack("B", fr.read(1))[0]
-                name = struct.unpack("%ds" % size, fr.read(size))[0]
+            elif pointer == 1:  # Pointer 1 = nome
+                size = struct.unpack("B", fr.read(1))[0]  # Tamanho da string
+                name = struct.unpack("%ds" % size, fr.read(size))[0]  # Ir buscar a string com tamanho size
                 holder.append(name)
                 pointer += 1
-            elif pointer == 2:
+            elif pointer == 2:  # Pointer 2 = tamanho de ficheiro
                 size_file = struct.unpack("i", fr.read(4))[0]
                 holder.append(size_file)
                 pointer += 1
-            elif pointer == 3:
+            elif pointer == 3:  # Pointer 3 = Tempo decorrido
                 timer = struct.unpack("d", fr.read(8))[0]
                 holder.append(timer)
                 stats[pid].append(holder)
                 holder = []
-                pointer = 0
-    print date
+                pointer = 0  # Reset de pointer para proximo ficheiro
+    print date  # A partir daqui e' imprimir os dados recolhidos
     print duration
-    for process in stats:
+    for process in stats:  # Para cada processo, imprimir os ficheiros que fez
         process_counter = 0
         print "Processo: " + str(process) + ""
         for processed_file in stats[process]:
@@ -65,7 +71,7 @@ def read_log(file):
 if __name__ == "__main__":
     """
     Argparse e' usado para fazer parsing dos argumentos da linha de comando.
-    """
+    
     description = "Lê o histórico de execução do programa pzip"
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("file", type=str, metavar="file", help="Ficheiro de log", nargs=1)
@@ -75,3 +81,5 @@ if __name__ == "__main__":
     if not args.file and sys.stdin.isatty():
         args.file = filter(lambda x: x != '', sys.stdin.read().split("\n"))
     read_log(args.file[0])
+    """
+    read_log("stat")

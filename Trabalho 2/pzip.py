@@ -17,8 +17,8 @@ class PZip:
     def __init__(self, timer, files, mode, t, processes, f, a):
         """
         Construtor de PZip.
-        Requires: files e' uma lista de strings, mode e' um a string que toma valores c ou d, t e' um boolean e
-        processes e' um int.
+        Requires: files e' uma lista de strings, mode e' um a string que toma valores c ou d, t e' um boolean,
+        processes e' um int, f e' uma string e a e' um int.
         Ensures: Zip ou unzip de ficheiros contidos em 'files'
         """
         self.files = files
@@ -27,8 +27,8 @@ class PZip:
         self.t = t
         self.f = f
         self.date = datetime.datetime.now()
-        self.names = None
-        self.sizes = None
+        self.names = None  # self.names, sizes e times sao usados como listas de informacao para se tiver que escrever
+        self.sizes = None  # o ficheiro binario
         self.times = None
         self.pid = None
         if f is not None:
@@ -36,10 +36,10 @@ class PZip:
             self.sizes = Array("i", len(files))
             self.times = Array("d", len(files))
             self.pid = Array("i", len(files))
-        signal.signal(signal.SIGINT, self.sigint_handler)
+        signal.signal(signal.SIGINT, self.sigint_handler)  # SIGINT (CTRL^C) para terminar a execucao do programa
         if a is not None:
-            signal.signal(signal.SIGALRM, self.sigalrm_handler)
-            signal.setitimer(signal.ITIMER_REAL, 1, a)
+            signal.signal(signal.SIGALRM, self.sigalrm_handler)  # Handler do sinal
+            signal.setitimer(signal.ITIMER_REAL, 1, a)  # Timer, a cada 'a' segundos envia um sinal SIGALRM q e apanhado
         self.mode = mode
         self.timer = timer
         self.totalFiles = Value('i', 0)
@@ -126,10 +126,16 @@ class PZip:
                     self.errorChecker.value = 1  # Ha erro e a flag atualiza
 
     def sigint_handler(self, sig, NULL):
+        """
+        Handler de sinal de SO SIGINT para terminar a execucao
+        """
         self.errorChecker.value = 1
         self.t = True
 
     def sigalrm_handler(self, sig, NULL):
+        """
+        Handler de sinal de SO SIGALRM que imprime o estado do programa
+        """
         print "Foram", ("comprimidos" if self.mode == 'c' else "descomprimidos"), \
             str(self.totalFiles.value), "ficheiros."
         print "Foram", ("comprimidos" if self.mode == 'c' else "descomprimidos"), \
@@ -137,19 +143,26 @@ class PZip:
         print "Tempo de execucao:", time.time() - timer
 
     def log_writer(self):
+        """
+        Escreve um ficheiro log binario com os estados da execucao do programa
+
+        Requires: self object
+        Ensures: A escrita de um ficheiro binario log
+        """
         status = []
         for i in range(len(self.files)):
             status.append([self.pid[i], self.names[i], self.sizes[i], self.times[i]])
         with open(self.f, "wb") as fw:
             for num in [self.date.day, self.date.month, self.date.year, self.date.hour,
                                  self.date.minute, self.date.second, self.date.microsecond]:
-                fw.write(struct.pack("i", num))
-            fw.write(struct.pack("d", self.end_timer))
+                fw.write(struct.pack("i", num))  # Escrever a data de comeco
+            fw.write(struct.pack("d", self.end_timer))  # Escrever data do fim
             for stat in status:
-                fw.write(struct.pack("i", stat[0]))
-                fw.write(struct.pack("B%ds" % len(stat[1]), len(stat[1]), stat[1]))
-                fw.write(struct.pack("i", stat[2]))
-                fw.write(struct.pack("d", stat[3]))
+                # Para cada ficheiro e' escrito na memoria sequencialmente
+                fw.write(struct.pack("i", stat[0]))  # pid do processo que trabalho no ficheiro
+                fw.write(struct.pack("B%ds" % len(stat[1]), len(stat[1]), stat[1]))  # Nome do ficheiro
+                fw.write(struct.pack("i", stat[2]))  # Tamanho do ficheiro apos
+                fw.write(struct.pack("d", stat[3]))  # Tempo que demorou a comprimir/descomprimir
 
 
 if __name__ == '__main__':
