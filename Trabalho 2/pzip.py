@@ -157,10 +157,13 @@ class PZip:
                                  self.date.minute, self.date.second, self.date.microsecond]:
                 fw.write(struct.pack("i", num))  # Escrever a data de comeco
             fw.write(struct.pack("d", self.end_timer))  # Escrever data do fim
+            print status
             for stat in status:
                 # Para cada ficheiro e' escrito na memoria sequencialmente
+                size = len(bytes(stat[1]))
                 fw.write(struct.pack("i", stat[0]))  # pid do processo que trabalho no ficheiro
-                fw.write(struct.pack("B%ds" % len(stat[1]), len(stat[1]), stat[1]))  # Nome do ficheiro
+                fw.write(struct.pack("i", size))
+                fw.write(struct.pack("%ds" % size, stat[1]))  # Nome do ficheiro
                 fw.write(struct.pack("i", stat[2]))  # Tamanho do ficheiro apos
                 fw.write(struct.pack("d", stat[3]))  # Tempo que demorou a comprimir/descomprimir
 

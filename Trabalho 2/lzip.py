@@ -36,9 +36,9 @@ def read_log(file):
                 pid = struct.unpack("i", fr.read(4))[0]
                 if pid not in stats:
                     stats[pid] = []
-                    pointer += 1
+                pointer += 1
             elif pointer == 1:  # Pointer 1 = nome
-                size = struct.unpack("B", fr.read(1))[0]  # Tamanho da string
+                size = struct.unpack("i", fr.read(4))[0]  # Tamanho da string
                 name = struct.unpack("%ds" % size, fr.read(size))[0]  # Ir buscar a string com tamanho size
                 holder.append(name)
                 pointer += 1
