@@ -15,7 +15,6 @@ def read_log(file):
     """
     date = 'Início da execução da compressão/descompressão: '
     duration = 'Duração da execução: '
-    pointer = 0
     holder = []
     stats = {}
     pid = 0
@@ -32,26 +31,18 @@ def read_log(file):
             struct.unpack("d", fr.read(8))[0]).strftime("%H:%M:%S:%f")  # Indicar a estrutura da string do timestamp,
         while fr.read(1):                                               # Que e' a duracao de programa
             fr.seek(-1, 1)  # Ver se existe ainda algo no ficheiro e voltar atras
-            if pointer == 0:  # Pointer 0 = pid
-                pid = struct.unpack("i", fr.read(4))[0]
-                if pid not in stats:
-                    stats[pid] = []
-                pointer += 1
-            elif pointer == 1:  # Pointer 1 = nome
-                size = struct.unpack("i", fr.read(4))[0]  # Tamanho da string
-                name = struct.unpack("%ds" % size, fr.read(size))[0]  # Ir buscar a string com tamanho size
-                holder.append(name)
-                pointer += 1
-            elif pointer == 2:  # Pointer 2 = tamanho de ficheiro
-                size_file = struct.unpack("i", fr.read(4))[0]
-                holder.append(size_file)
-                pointer += 1
-            elif pointer == 3:  # Pointer 3 = Tempo decorrido
-                timer = struct.unpack("d", fr.read(8))[0]
-                holder.append(timer)
-                stats[pid].append(holder)
-                holder = []
-                pointer = 0  # Reset de pointer para proximo ficheiro
+            pid = struct.unpack("i", fr.read(4))[0]
+            if pid not in stats:
+                stats[pid] = []
+            size = struct.unpack("i", fr.read(4))[0]  # Tamanho da string
+            name = struct.unpack("%ds" % size, fr.read(size))[0]  # Ir buscar a string com tamanho size
+            holder.append(name)
+            size_file = struct.unpack("i", fr.read(4))[0]
+            holder.append(size_file)
+            timer = struct.unpack("d", fr.read(8))[0]
+            holder.append(timer)
+            stats[pid].append(holder)
+            holder = []
     print date  # A partir daqui e' imprimir os dados recolhidos
     print duration
     for process in stats:  # Para cada processo, imprimir os ficheiros que fez

@@ -151,13 +151,13 @@ class PZip:
         """
         status = []
         for i in range(len(self.files)):
-            status.append([self.pid[i], self.names[i], self.sizes[i], self.times[i]])
+            if self.pid[i] != 0:
+                status.append([self.pid[i], self.names[i], self.sizes[i], self.times[i]])
         with open(self.f, "wb") as fw:
             for num in [self.date.day, self.date.month, self.date.year, self.date.hour,
                                  self.date.minute, self.date.second, self.date.microsecond]:
                 fw.write(struct.pack("i", num))  # Escrever a data de comeco
             fw.write(struct.pack("d", self.end_timer))  # Escrever data do fim
-            print status
             for stat in status:
                 # Para cada ficheiro e' escrito na memoria sequencialmente
                 size = len(bytes(stat[1]))
