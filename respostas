@@ -1,0 +1,61 @@
+YES
+YES
+YES
+YES
+YES
+YES
+YES
+YES
+YES
+YES
+YES
+----------------------------
+As funcionalidades requiridas no enunciado foram todas concretizadas. Embora a estrutura de pedido de ficheiros de stdin não terá sido especificada no enunciado, assumimos o seguinte:
+
+O ficheiro de nomes tem nomes dos ficheiros, um por linha. 
+Quando não especificado nomes de ficheiros nem ficheiro com nomes de ficheiros, é perguntado ao user por stdin onde vai inserir um ficheiro por linha e utilizar CTRL+D para terminar o stdin e arrancar o programa.
+
+Na criação de threads/processos, o número criado é limitado pelo número de ficheiros disponíveis para evitar o caso de, por exemplo, por engano alguem criar 300 processos para apenas 3 ficheiros, que é bastante ineficiente. Assim, há um limite superior com o número de ficheiros.
+-----------------------------
+YES
+YES
+Memória partilhada
+Memória
+Process
+YES
+-----------------------------
+A informação é passada ao processo pai da seguinte maneira: Na resolução com processos, é utilizada memória partilhada (Value), cujo valor é os ficheiros comprimidos. O incremento da variavel está protegido por um mutex para evitar a concorrência paralela. Na resolução com threads é utilizada uma variavel global que é partilhada por todas as threads, cujo o incremento tambem está protegido por um mutex.
+-----------------------------
+Os processos filhos/threads sabem que já foi efetuado a compressão/descompressão de todos os ficheiros quando o valor do pointer(um valor que indica qual o indice do ficheiro que deve ser feito) é maior que o tamanho da lista de ficheiros.
+-----------------------------
+A estrutura foi concretizada através de um classe. O construtor __init__ inicializa variaveis e cria processos, bem como fazer o output final. Os processos/threads criadas têm como target um das duas funções, dependendo do parametro passado, zip() ou unzip(). 
+
+Dentro do bloco __name__ == '__main__' encontra-se o argparser e a chamada da classe para arrancar.
+-----------------------------
+Foi medido o desempenho ao utilizar 3 ficheiros de 160MB e fazer zip/unzip dos mesmos 10 vezes com 3 processos/threads(-p 3) atraves do modulo timeit. Resultados:
+ZIP Processos:
+
+1.39 sec best score
+
+Unzip Processos:
+
+1.7 secs best score 
+
+
+Zip Threads:
+
+1.24 secs best score 
+
+
+Unzip Threads:
+
+1.2 secs best score
+
+Os resultados são melhores na solução das threads. Devido à infrastrutura pesada necessária para construir a memória partilhada em processos, o seu processamento é mais lento que threads que naturalmente têm memória partilhada entre si.
+-----------------------------
+Há um diferença substancial entre o tempo de uma solução e um tempo de outra. Em termos de criação, as threads são criadas bastante mais rapidamente devido ao facto de não ser necessário copiar o PCB inteiro, há zonas que são partilhadas e então a sua criação é mais rápida que processos. 
+
+Essa partilha de memória ajuda também no desempenho durante as funções. Em vez de necessitar de uma estrutura bastante pesada com chamadas ao sistema operativo, as threads usufruem de partilhar a memória de variáveis globais.
+
+Tudo isto contribui para a discrepância observada durante os testes.
+-----------------------------

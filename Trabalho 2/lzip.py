@@ -31,18 +31,18 @@ def read_log(file):
             struct.unpack("d", fr.read(8))[0]).strftime("%H:%M:%S:%f")  # Indicar a estrutura da string do timestamp,
         while fr.read(1):                                               # Que e' a duracao de programa
             fr.seek(-1, 1)  # Ver se existe ainda algo no ficheiro e voltar atras
-            pid = struct.unpack("i", fr.read(4))[0]
+            pid = struct.unpack("i", fr.read(4))[0]  # pid do processo
             if pid not in stats:
                 stats[pid] = []
             size = struct.unpack("i", fr.read(4))[0]  # Tamanho da string
             name = struct.unpack("%ds" % size, fr.read(size))[0]  # Ir buscar a string com tamanho size
             holder.append(name)
-            size_file = struct.unpack("i", fr.read(4))[0]
+            size_file = struct.unpack("i", fr.read(4))[0]  # Tamanho do ficheiro
             holder.append(size_file)
-            timer = struct.unpack("d", fr.read(8))[0]
+            timer = struct.unpack("d", fr.read(8))[0]  # Tempo de processamento
             holder.append(timer)
             stats[pid].append(holder)
-            holder = []
+            holder = []  # Reset da lista temporaria
     print date  # A partir daqui e' imprimir os dados recolhidos
     print duration
     for process in stats:  # Para cada processo, imprimir os ficheiros que fez
